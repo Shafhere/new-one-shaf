@@ -285,18 +285,8 @@ a{color:var(--teal-600);}
 .mission-banner .big{font-family:var(--font-display); font-size:19px; font-weight:600;}
 .mission-banner .small{font-size:12px; opacity:.8; margin-top:4px;}
 
-/* ---------- Weekly / Monthly ---------- */
-.chip-row{display:flex; gap:8px; overflow-x:auto; padding-bottom:2px;}
-.chip{background:var(--surface-2); border:1px solid var(--border); border-radius:999px; padding:6px 13px; font-size:12.5px; white-space:nowrap; color:var(--text-soft);}
-.bar-chart{display:flex; align-items:flex-end; gap:8px; height:120px; margin-top:14px; padding:0 2px;}
-.bar-col{flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; justify-content:flex-end; height:100%;}
-.bar-fill{width:100%; max-width:26px; background:linear-gradient(180deg, var(--teal-400), var(--teal-600)); border-radius:8px 8px 4px 4px; transition:height .6s var(--ease);}
-.bar-label{font-size:10px; color:var(--text-faint);}
-.suggestion-item{display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--border-soft); font-size:13.5px; align-items:flex-start;}
-.suggestion-item:last-child{border-bottom:none;}
-.revision-list label{display:flex; gap:10px; align-items:center; padding:9px 0; font-size:14px; border-bottom:1px solid var(--border-soft);}
-.revision-list label:last-child{border-bottom:none;}
-.revision-list input{width:18px; height:18px; accent-color:var(--teal-600);}
+/* ---------- Weekly / Monthly (removed) ---------- */
+/* No weekly/monthly sections remain */
 
 /* ---------- Goals ---------- */
 .goal-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px;}
@@ -417,11 +407,6 @@ a{color:var(--teal-600);}
 .hidden{display:none !important;}
 .mini-note{font-size:11.5px; color:var(--text-faint); margin-top:8px; line-height:1.5;}
 .row-between{display:flex; justify-content:space-between; align-items:center;}
-
-/* ---------- Conditional visibility (weekend & month-end) ---------- */
-.conditional-section {
-  display: none;
-}
 </style>
 </head>
 <body>
@@ -533,36 +518,7 @@ a{color:var(--teal-600);}
       </div>
     </div>
 
-    <!-- ============ WEEKLY SECTION (conditional) ============ -->
-    <div class="section conditional-section" id="weeklySection">
-      <div class="section-title">Weekly Review · Saturday</div>
-      <div class="card">
-        <div class="row-between">
-          <div style="font-weight:600; font-size:14px;">This Week's Study Hours</div>
-        </div>
-        <div class="bar-chart" id="weeklyChart"></div>
-        <div style="margin-top:16px;">
-          <div style="font-weight:600; font-size:13px; color:var(--text-soft); margin-bottom:2px;">Suggestions</div>
-          <div id="weeklySuggestions"></div>
-        </div>
-        <div style="margin-top:14px;">
-          <div style="font-weight:600; font-size:13px; color:var(--text-soft); margin-bottom:2px;">Weekly Revision Checklist</div>
-          <div class="revision-list" id="weeklyRevision"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ============ MONTHLY SECTION (conditional) ============ -->
-    <div class="section conditional-section" id="monthlySection">
-      <div class="section-title">Monthly Revision</div>
-      <div class="card">
-        <div class="row-between">
-          <div style="font-weight:600; font-size:14px;" id="monthlyLabel">This Month</div>
-          <div class="chip" id="monthlyProgress">0/0</div>
-        </div>
-        <div class="revision-list" id="monthlyRevision" style="margin-top:8px;"></div>
-      </div>
-    </div>
+    <!-- ============ WEEKLY / MONTHLY SECTIONS REMOVED ============ -->
 
     <div class="section">
       <div class="section-title">Goals</div>
@@ -796,7 +752,6 @@ function defaultState(){
       german:{log:{}}, communication:{log:{}}, reading:{log:{}},
       fitness:{log:{}}, meditation:{log:{}}, reflection:{log:{}}
     },
-    monthlyRevision:{}, // { 'YYYY-M': {subject: bool} }
     calView: todayKey().slice(0,7)
   };
 }
@@ -1088,90 +1043,7 @@ function checkMission(){
 }
 
 /* ---------------------------------------------------------
-   7. WEEKLY REVIEW
-   --------------------------------------------------------- */
-function renderWeekly(){
-  // The section's visibility is handled by updateConditionalVisibility()
-  const chart = $("#weeklyChart");
-  chart.innerHTML = "";
-  const days = [];
-  for(let i=6;i>=0;i--) days.push(new Date(Date.now()-i*86400000));
-  const max = Math.max(3*3600, ...days.map(d=>state.timer.log[todayKey(d)]||0));
-  days.forEach(d=>{
-    const sec = state.timer.log[todayKey(d)]||0;
-    const h = (max? (sec/max*100):0);
-    const col = document.createElement("div");
-    col.className="bar-col";
-    col.innerHTML = `<div class="bar-fill" style="height:${Math.max(4,h)}%" title="${fmtHM(sec)}"></div><div class="bar-label">${d.toLocaleDateString(undefined,{weekday:"narrow"})}</div>`;
-    chart.appendChild(col);
-  });
-
-  // suggestions
-  const totalWeek = days.reduce((a,d)=>a+(state.timer.log[todayKey(d)]||0),0);
-  const avgH = totalWeek/7/3600;
-  const sugg = [];
-  if(avgH < 3) sugg.push("Study time is below 3h/day average — protect two extra focused blocks next week.");
-  else if(avgH < 5) sugg.push("Solid pace. Push toward 5–6h/day to build exam-day stamina.");
-  else sugg.push("Excellent volume this week — now prioritise weak-subject accuracy over raw hours.");
-  const doneDays = days.filter(d=>{
-    const tt = state.tasks[todayKey(d)];
-    return tt && TASK_DEFS.every(def=>isTaskDone(tt,def));
-  }).length;
-  sugg.push(`You completed the full daily mission on ${doneDays}/7 days — ${doneDays>=5?"keep this rhythm going.":"aim to close the gap next week."}`);
-  sugg.push("Revisit your weakest subject from this week's MCQ misses before Monday.");
-  $("#weeklySuggestions").innerHTML = sugg.map(s=>`<div class="suggestion-item"><span>•</span><span>${s}</span></div>`).join("");
-
-  // weekly revision checklist
-  const wk = weekKey();
-  if(!state.monthlyRevision["_weekly_"+wk]) state.monthlyRevision["_weekly_"+wk] = {};
-  const wobj = state.monthlyRevision["_weekly_"+wk];
-  const items = ["High-yield tables review","Previous week's wrong MCQs","One full-length mock test","Revise today's weakest subject flashcards"];
-  $("#weeklyRevision").innerHTML = items.map((it,i)=>`
-    <label><input type="checkbox" data-i="${i}" ${wobj[i]?"checked":""}> ${it}</label>`).join("");
-  $$("#weeklyRevision input").forEach(inp=>{
-    inp.addEventListener("change", ()=>{ wobj[inp.dataset.i]=inp.checked; save(); });
-  });
-}
-function weekKey(){
-  const d = new Date();
-  const onejan = new Date(d.getFullYear(),0,1);
-  const week = Math.ceil((((d-onejan)/86400000)+onejan.getDay()+1)/7);
-  return `${d.getFullYear()}-W${week}`;
-}
-
-/* ---------------------------------------------------------
-   8. MONTHLY REVISION (auto-generated rotation)
-   --------------------------------------------------------- */
-const SUBJECTS = ["Anatomy","Physiology","Biochemistry","Pathology","Pharmacology","Microbiology",
-  "Forensic Medicine","PSM","Medicine","Surgery","Obstetrics & Gynaecology","Pediatrics",
-  "Orthopedics","ENT","Ophthalmology","Dermatology","Psychiatry","Anaesthesia","Radiology"];
-function renderMonthly(){
-  const now = new Date();
-  const mk = `${now.getFullYear()}-${now.getMonth()+1}`;
-  $("#monthlyLabel").textContent = now.toLocaleDateString(undefined,{month:"long", year:"numeric"});
-  if(!state.monthlyRevision[mk]){
-    // rotate 5 subjects per month based on month index
-    const startIdx = (now.getMonth()*5) % SUBJECTS.length;
-    const picks = [];
-    for(let i=0;i<5;i++) picks.push(SUBJECTS[(startIdx+i)%SUBJECTS.length]);
-    const obj = {};
-    picks.forEach(s=>obj[s]=false);
-    state.monthlyRevision[mk] = obj;
-    save();
-  }
-  const obj = state.monthlyRevision[mk];
-  const keys = Object.keys(obj);
-  const done = keys.filter(k=>obj[k]).length;
-  $("#monthlyProgress").textContent = `${done}/${keys.length}`;
-  $("#monthlyRevision").innerHTML = keys.map(s=>`
-    <label><input type="checkbox" data-s="${s}" ${obj[s]?"checked":""}> ${s}</label>`).join("");
-  $$("#monthlyRevision input").forEach(inp=>{
-    inp.addEventListener("change", ()=>{ obj[inp.dataset.s]=inp.checked; save(); renderMonthly(); });
-  });
-}
-
-/* ---------------------------------------------------------
-   9. GOALS
+   7. GOALS
    --------------------------------------------------------- */
 const GOAL_DEFS = [
   {key:"german", icon:"🇩🇪", name:"German"},
@@ -1229,7 +1101,7 @@ $("#goalMarkBtn").addEventListener("click", ()=>{
 });
 
 /* ---------------------------------------------------------
-   10. JOURNEY CALENDAR
+   8. JOURNEY CALENDAR
    --------------------------------------------------------- */
 const CAL_MIN = new Date(2025,0,1);
 const CAL_MAX = new Date(2027,7,31); // August 2027 cap, per spec
@@ -1321,7 +1193,7 @@ $$("#moodRow .mood-btn").forEach(b=>{
 });
 
 /* ---------------------------------------------------------
-   11. PROFILE
+   9. PROFILE
    --------------------------------------------------------- */
 function renderProfile(){
   const p = state.profile;
@@ -1412,7 +1284,7 @@ $("#pwaHint").addEventListener("click", ()=>{
 });
 
 /* ---------------------------------------------------------
-   12. THEME
+   10. THEME
    --------------------------------------------------------- */
 function applyTheme(){
   document.documentElement.setAttribute("data-theme", state.theme);
@@ -1429,7 +1301,7 @@ $("#darkSwitch").addEventListener("click", ()=>{
 });
 
 /* ---------------------------------------------------------
-   13. NAVIGATION
+   11. NAVIGATION
    --------------------------------------------------------- */
 function showView(name){
   $$(".view").forEach(v=>v.classList.remove("active"));
@@ -1441,7 +1313,7 @@ function showView(name){
 $$(".nav-btn").forEach(b=>b.addEventListener("click", ()=>showView(b.dataset.view)));
 
 /* ---------------------------------------------------------
-   14. CONFETTI
+   12. CONFETTI
    --------------------------------------------------------- */
 const cvs = $("#confetti-canvas");
 const ctx = cvs.getContext("2d");
@@ -1483,7 +1355,7 @@ function fireConfetti(){
 }
 
 /* ---------------------------------------------------------
-   15. OFFLINE / PWA (manifest + service worker, inline)
+   13. OFFLINE / PWA (manifest + service worker, inline)
    --------------------------------------------------------- */
 (function setupPWA(){
   try{
@@ -1521,27 +1393,7 @@ function fireConfetti(){
 })();
 
 /* ---------------------------------------------------------
-   16. CONDITIONAL VISIBILITY (weekend & month-end)
-   --------------------------------------------------------- */
-function updateConditionalVisibility() {
-  const now = new Date();
-  const day = now.getDay(); // 0=Sunday, 6=Saturday
-  const isWeekend = (day === 0 || day === 6);
-  const isLastDayOfMonth = (now.getDate() === new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate());
-  const shouldShow = isWeekend || isLastDayOfMonth;
-
-  const weeklyEl = document.getElementById('weeklySection');
-  const monthlyEl = document.getElementById('monthlySection');
-  if (weeklyEl) {
-    weeklyEl.style.display = shouldShow ? 'block' : 'none';
-  }
-  if (monthlyEl) {
-    monthlyEl.style.display = shouldShow ? 'block' : 'none';
-  }
-}
-
-/* ---------------------------------------------------------
-   17. RENDER ALL + MAIN LOOP
+   14. RENDER ALL + MAIN LOOP
    --------------------------------------------------------- */
 function renderAll(){
   applyTheme();
@@ -1550,12 +1402,9 @@ function renderAll(){
   checkMission();
   renderTimer();
   syncTimerButtons();
-  renderWeekly();
-  renderMonthly();
   renderGoals();
   renderCalendar();
   $("#dailyQuote").textContent = dailyQuote();
-  updateConditionalVisibility(); // apply visibility rule
 }
 
 renderAll();
